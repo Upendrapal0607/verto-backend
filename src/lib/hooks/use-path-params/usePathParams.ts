@@ -1,25 +1,15 @@
 import { isArray, isFunction, tryit } from 'radash';
-import { z as zod, ZodError } from 'zod';
+import { z as zod, ZodError, ZodSchema, ZodTypeAny } from 'zod';
 import { BadRequestError } from '../../core/index';
+import { Props, NextFunc } from '../../core/types';
 
-const isZodError = (e:any) => e?.issues && isArray(e.issues);
+const isZodError = (e: unknown): e is ZodError => e instanceof ZodError && e?.issues && isArray(e.issues);
 
-/**
- * @typedef {import('../core').NextFunc} NextFunc
- * @typedef {import('../core').Props} Props
- * @typedef {import('zod').AnyZodObject} AnyZodObject
- * @typedef {import('zod').ZodArray} ZodArray
- * @typedef {import('zod').ZodObject} ZodObject
- * @typedef {import('zod').ZodRawShape} ZodRawShape
- */
-
-/**
- * @param {NextFunc} func
- * @param {AnyZodObject|ZodArray} model
- * @param {Props} props
- * @returns {Promise<any>}
- */
-export const withPathParams = async (func:any, model:any, props:any) => {
+export const withPathParams = async <TProps extends Props, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    model: ZodSchema, 
+    props: TProps
+): Promise<TResult> => {
     const [zerr, args] = await tryit(model.parseAsync)(props.request.params);
     if (zerr) {
         if (!isZodError(zerr)) {
@@ -41,16 +31,15 @@ export const withPathParams = async (func:any, model:any, props:any) => {
         ...props,
         args: {
             ...props.args,
-            ...(args as any),
+            ...(args as Record<string, unknown>),
         },
-    });
+    } as TProps);
 };
 
-/**
- * @param {ZodObject|((z: typeof zod) => ZodRawShape)} shapeMaker
- * @returns {(func: NextFunc) => NextFunc}
- */
-export const usePathParams = (shapeMaker:any) => (func:any) => {
-    const model = isFunction(shapeMaker) ? zod.object(shapeMaker(zod)) : shapeMaker;
-    return (props:any) => withPathParams(func, model, props);
-};
+type ShapeMaker = (z: typeof zod) => Record<string, ZodTypeAny>;
+
+export const usePathParams = <TProps extends Props = Props>(shapeMaker: ShapeMaker | ZodSchema) => 
+    <TResult>(func: NextFunc<TProps, TResult>) => {
+        const model = isFunction(shapeMaker) ? zod.object(shapeMaker(zod)) : shapeMaker;
+        return (props: TProps) => withPathParams(func, model, props);
+    };

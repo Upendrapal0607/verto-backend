@@ -1,4 +1,4 @@
-const get = (name: any, defaultValue = null) => {
+const get = (name: string, defaultValue: string | null = null): string | null => {
     const val = process.env[name];
     if (!val) {
         return defaultValue;
@@ -6,7 +6,15 @@ const get = (name: any, defaultValue = null) => {
     return val;
 };
 
-const config = {
+interface Config {
+    env: string | null;
+    jwtSecret: string | null;
+    mongoUri: string | null;
+    databaseName: string | null;
+    appBaseUrl: string | null;
+}
+
+const config: Config = {
     env: get('NODE_ENV'),
     jwtSecret: get('JWT_SECRET'),
     mongoUri: get('MONGO_URI'),

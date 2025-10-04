@@ -2,10 +2,20 @@ import { compose } from 'radash';
 import { useCoreServices } from '../../../core/index';
 import { useKoa, useServices } from '../../../lib/hooks/index';
 import { findManyEmployee } from '../service';
+import { Services } from '../types';
 
-export const employeeGet = async ({ services, args }:any):Promise<any> => {
-      const employee = await findManyEmployee({ services, args });
-     return {  data: employee };
+interface EmployeeGetResponse {
+    data: {
+        employee: unknown[];
+    };
+}
+
+export const employeeGet = async ({ services }: {
+    services: Services;
+    args: unknown;
+}): Promise<EmployeeGetResponse> => {
+    const employee = await findManyEmployee({ services });
+    return { data: employee };
 };
 
 export const endpoint = {

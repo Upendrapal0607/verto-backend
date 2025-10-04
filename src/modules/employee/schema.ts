@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 import { COLLECTION, MODEL } from './constants';
-// Create employee schema model
+
 const employee = {
     name: { type: String, required: true},
     email: { type: String,required: true },

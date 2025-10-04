@@ -1,10 +1,10 @@
-import { createConnection } from 'mongoose';
+import { createConnection, Connection, Schema } from 'mongoose';
 import config from '../config';
 import createClient from './client';
 
-let defConn : any = null;
+let defConn: Connection | null = null;
 
-export const getConn = () => {
+export const getConn = (): Connection => {
     const options = {
         dbName: config.databaseName || "employee",
         useNewUrlParser: true,
@@ -21,7 +21,7 @@ export const getConn = () => {
     return conn;
 };
 
-export const registerModel = (model : any, schema : any) => {
+export const registerModel = (model: string, schema: Schema) => {
     const conn = getConn();
     
     return conn.model(model, schema);
@@ -35,7 +35,7 @@ const makeMongo = () => {
 /**
  * Disconnect from MongoDB
  */
-export const disconnectMongo = async () => {
+export const disconnectMongo = async (): Promise<void> => {
     const conn = getConn();
     await conn.close();
 };

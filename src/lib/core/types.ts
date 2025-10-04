@@ -2,18 +2,14 @@ export type Request = {
     url: string;
     path: string;
     method: string;
-
     ip: string;
-    /**
-     * Milliseconds timestamp when the request started
-     */
     startedAt: number;
     httpVersion: string;
     protocol: string;
     headers: Record<string, string | string[]>;
     query: Record<string, string>;
     params: Record<string, string>;
-    body: Record<string, any> | string | null;
+    body: Record<string, unknown> | string | null;
 };
 
 export type ResponseBody = {
@@ -54,7 +50,7 @@ export type Props<
     framework: TFramework;
 };
 
-export type NextFunc<TProps extends Props = Props, TResult = any> = (props: TProps) => Promise<TResult>;
+export type NextFunc<TProps extends Props = Props, TResult = unknown> = (props: TProps) => Promise<TResult>;
 
 export type SerializableJson =
     | string
@@ -65,4 +61,4 @@ export type SerializableJson =
     | SerializableJson[]
     | { [key: string]: SerializableJson };
 
-export type InferProps<TFunc extends { (...args: any[]): any; _props: any }> = TFunc['_props'];
+export type InferProps<TFunc extends { (...args: unknown[]): unknown; _props: unknown }> = TFunc['_props'];

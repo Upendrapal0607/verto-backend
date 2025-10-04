@@ -1,7 +1,27 @@
 import _ from 'lodash';
 import { NotAuthorizedError } from '../../lib/core/error';
+import { Props, NextFunc } from '../../lib/core/types';
 
-const withFeatureCheck = async (func:any, props:any, opts:any) => {
+interface Organization {
+    [key: string]: unknown;
+}
+
+interface FeatureOptions {
+    features?: Array<(org: Organization, props: Props) => boolean | Promise<boolean>>;
+}
+
+interface FeatureProps extends Props {
+    args: {
+        org: Organization;
+        [key: string]: unknown;
+    };
+}
+
+const withFeatureCheck = async <TProps extends FeatureProps, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    props: TProps, 
+    opts: FeatureOptions
+): Promise<TResult> => {
     const { org } = props.args;
     const features = opts.features || [];
 
@@ -24,9 +44,10 @@ const withFeatureCheck = async (func:any, props:any, opts:any) => {
         args: {
             ...props.args,
         },
-    });
+    } as TProps);
 };
 
-export const useFeature = (opts:any) => (func:any) => (props:any) => {
-    return withFeatureCheck(func, props, opts);
-};
+export const useFeature = <TProps extends FeatureProps = FeatureProps>(opts: FeatureOptions) => 
+    <TResult>(func: NextFunc<TProps, TResult>) => (props: TProps) => {
+        return withFeatureCheck(func, props, opts);
+    };

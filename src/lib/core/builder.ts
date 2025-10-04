@@ -18,14 +18,14 @@ export const chain = (funcs:any = []) => ({
   },
 
   endpoint: (handler:any) => {
-    const endpoint = (...args : any) => {
+    const endpoint = (...args:any) => {
       let result = handler;
       for (let i = funcs.length - 1; i >= 0; i--) {
         result = funcs[i](result);
       }
       return result(...args);
     };
-    endpoint.hooks = funcs.map((f:any )=> f.name);
+    endpoint.hooks = funcs.map((f:any) => f.name);
     return endpoint;
   },
 

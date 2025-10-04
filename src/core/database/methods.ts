@@ -1,12 +1,25 @@
 import _ from 'lodash';
 import { tryit } from 'radash';
+import { Connection, Model, Document } from 'mongoose';
 
 const DEFAULT_MAX_TIME_MS = 5000;
 
-const getModel = (conn :any, m:any) => conn.model(m);
+interface FindOptions {
+    fields?: string[];
+    page?: number;
+    limit?: number;
+    sort?: Record<string, 1 | -1>;
+    maxTimeMS?: number;
+}
 
+interface FindOneOptions {
+    sort?: Record<string, 1 | -1>;
+    maxTimeMS?: number;
+}
 
-export const insertOne = (conn : any) => async (model:any, record:any) => {
+const getModel = (conn: Connection, modelName: string): Model<Document> => conn.model(modelName);
+
+export const insertOne = (conn: Connection) => async (model: string, record: Record<string, unknown>): Promise<[Error | null, unknown]> => {
     const m = getModel(conn, model);
     const [err, result] = await tryit(async () => {
         const result = await m.create(record);
@@ -18,7 +31,7 @@ export const insertOne = (conn : any) => async (model:any, record:any) => {
     return [null, result];
 };
 
-export const updateOne = (conn:any) => async (model:any, query:any, updateData:any) => {
+export const updateOne = (conn: Connection) => async (model: string, query: Record<string, unknown>, updateData: Record<string, unknown>): Promise<[Error | null, boolean]> => {
     const m = getModel(conn, model);
     const r = m.updateOne(query, updateData);
     const [err, result] = await tryit(() => {
@@ -33,66 +46,59 @@ export const updateOne = (conn:any) => async (model:any, query:any, updateData:a
     return [null, false];
 };
 
-export const findOne =
-    (conn:any) =>
-    async (model:any, query:any, opts:any = {}) => {
-        const m = getModel(conn, model);
-        const r = m.findOne(query);
-        _.each(['sort', 'maxTimeMS'], (prop:any) => {
-            const val = opts[prop] || null;
-            if (val) {
-                r[prop](val);
-            }
-        });
-        if (!opts['maxTimeMS']) {
-            r.maxTimeMS(DEFAULT_MAX_TIME_MS);
+export const findOne = (conn: Connection) => async (model: string, query: Record<string, unknown>, opts: FindOneOptions = {}): Promise<[Error | null, unknown]> => {
+    const m = getModel(conn, model);
+    const r = m.findOne(query);
+    _.each(['sort', 'maxTimeMS'], (prop: keyof FindOneOptions) => {
+        const val = opts[prop] || null;
+        if (val) {
+            (r as any)[prop](val);
         }
-        const [err, record] = await tryit(() => {
-            return r.lean().exec();
-        })();
-        if (err) {
-            return [err, null];
-        }
-        return [null, record];
-    };
+    });
+    if (!opts['maxTimeMS']) {
+        r.maxTimeMS(DEFAULT_MAX_TIME_MS);
+    }
+    const [err, record] = await tryit(() => {
+        return r.lean().exec();
+    })();
+    if (err) {
+        return [err, null];
+    }
+    return [null, record];
+};
 
-
-export const findById = (conn:any) => async (model:any, id:any) => {
+export const findById = (conn: Connection) => async (model: string, id: string): Promise<[Error | null, unknown]> => {
     const m = getModel(conn, model);
     return findOne(conn)(model, { _id: id });
 };
 
-export const findMany =
-    (conn:any) =>
-    async (model:any, query:any, opts:any = { fields: [], page: 1, limit: 10 }) => {
-        const m = getModel(conn, model);
-        const fields = opts.fields || [];
-        const mgQuery = m.find(query, fields);
-        const skip = ((opts.page || 1) - 1) * (opts.limit || 10);
-        if (skip > 0) {
-            mgQuery.skip(skip);
+export const findMany = (conn: Connection) => async (model: string, query: Record<string, unknown>, opts: FindOptions = { fields: [], page: 1, limit: 10 }): Promise<[Error | null, unknown[]]> => {
+    const m = getModel(conn, model);
+    const fields = opts.fields || [];
+    const mgQuery = m.find(query, fields);
+    const skip = ((opts.page || 1) - 1) * (opts.limit || 10);
+    if (skip > 0) {
+        mgQuery.skip(skip);
+    }
+    _.each(['sort', 'limit', 'maxTimeMS'], (prop: keyof FindOptions) => {
+        const val = opts[prop] || null;
+        if (val) {
+            (mgQuery as any)[prop](val);
         }
-        _.each(['sort', 'limit', 'maxTimeMS'], (prop:any) => {
-            const val = opts[prop] || null;
-            if (val) {
-                mgQuery[prop](val);
-            }
-        });
-        if (!opts['maxTimeMS']) {
-            mgQuery.maxTimeMS(DEFAULT_MAX_TIME_MS);
-        }
-        const [err, records] = await tryit(() => {
-            return mgQuery.lean().exec();
-        })();
-        if (err) {
-            return [err, null];
-        }
-        return [null, records || []];
-    };
+    });
+    if (!opts['maxTimeMS']) {
+        mgQuery.maxTimeMS(DEFAULT_MAX_TIME_MS);
+    }
+    const [err, records] = await tryit(() => {
+        return mgQuery.lean().exec();
+    })();
+    if (err) {
+        return [err, null];
+    }
+    return [null, records || []];
+};
 
-
-
-export const deleteOne = (conn:any) => async (model:any, query:any) => {
+export const deleteOne = (conn: Connection) => async (model: string, query: Record<string, unknown>): Promise<[Error | null, boolean]> => {
     const m = getModel(conn, model);
     const [err] = await tryit(() => {
         return m.deleteOne(query);
@@ -103,8 +109,7 @@ export const deleteOne = (conn:any) => async (model:any, query:any) => {
     return [null, true];
 };
 
-
-export const count = (conn:any) => async (model:any, query:any) => {
+export const count = (conn: Connection) => async (model: string, query: Record<string, unknown>): Promise<[Error | null, number]> => {
     const m = getModel(conn, model);
     const [err, result] = await tryit(() => {
         return m.countDocuments(query).maxTimeMS(DEFAULT_MAX_TIME_MS);

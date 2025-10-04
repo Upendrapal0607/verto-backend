@@ -1,17 +1,17 @@
 import { isArray, isFunction, tryit } from 'radash';
 import zod, { ZodArray, ZodError, ZodObject, ZodRawShape, ZodTypeAny } from 'zod';
+import { BadRequestError } from '../../core/error';
 import { NextFunc, Props } from '../../core/types';
-import { BadRequestError } from '../../core/index';
 
 const isZodError = (e: any): e is ZodError => e?.issues && isArray(e.issues);
 
 export const withJsonBody = async (
     func: any,
     name: string | undefined,
-    model: any | ZodArray<any>,
+    model: ZodArray<any> | any,
     props: any,
 ) => {
-    const [zerr, args]:any = await tryit(model.parseAsync)(props.request.body);
+    const [zerr, args] = await tryit(model.parseAsync)(props.request.body);
     if (zerr) {
         if (!isZodError(zerr)) {
             throw new BadRequestError('Json body validation failed: ' + zerr.message, {

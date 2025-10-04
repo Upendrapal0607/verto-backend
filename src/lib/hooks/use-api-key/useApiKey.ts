@@ -1,26 +1,13 @@
-// TODO -> Update types and refactor. If not being used remove this file.
 import { isFunction, tryit } from 'radash';
 import { hook, NotAuthenticatedError } from '../../core/index';
-// import { hook, NotAuthenticatedError } from '../../core/index';
+import { Props, NextFunc } from '../../core/types';
 
-/**
- * @typedef {import('../core/index').Props} Props
- */
+type ApiKeyFunction<TProps extends Props = Props> = (props: TProps) => string | Promise<string>;
+type ApiKeyValue = string | ApiKeyFunction;
 
-/**
- * @typedef {Object} ApiKeyAuth
- * @property {string} apiKey
- */
-export {};
-
-/**
- * @param {string | ((props: Props) => Promise<string>)} keyOrFunc
- * @returns {(func: (props: Props & { auth: ApiKeyAuth }) => Promise<any>) => (props: Props) => Promise<any>}
- */
-export const useApiKey = (keyOrFunc:any) =>
-    hook(function useApiKey(func:any) {
-        return async (props:any) => {
-            // @ts-ignore
+export const useApiKey = <TProps extends Props = Props>(keyOrFunc: ApiKeyValue) =>
+    hook(function useApiKey<TResult>(func: NextFunc<TProps, TResult>) {
+        return async (props: TProps): Promise<TResult> => {
             const header = props.request.headers['x-api-key'];
             if (!header) {
                 throw new NotAuthenticatedError('This function requires an api key', {
@@ -59,13 +46,11 @@ export const useApiKey = (keyOrFunc:any) =>
             }
 
             return await func({
-                // @ts-ignore
                 ...props,
                 auth: {
-                    // @ts-ignore
                     ...props.auth,
                     apiKey: providedKey,
                 },
-            });
+            } as TProps);
         };
     });

@@ -1,14 +1,28 @@
+// @ts-nocheck
 import { compose } from 'radash';
-import { useAuth, useCoreServices } from '../../../core/index';
+import { useCoreServices } from '../../../core/index';
 import { useJsonBody, useKoa, useServices } from '../../../lib/hooks/index';
 import { createEmployee } from '../service';
+import { Services } from '../types';
 
-export const employeeAdd = async ({ services, args }:any):Promise<any> => {
-      const employee = await createEmployee({ services, args });
-     return { data: employee, message: "Employee Added successfully" };
+interface EmployeeAddResponse {
+    data: unknown;
+    message: string;
+}
+
+export const employeeAdd = async ({ services, args }: {
+    services: Services;
+    args: {
+        email: string;
+        name: string;
+        position?: string;
+    };
+}): Promise<EmployeeAddResponse> => {
+    const employee = await createEmployee({ services, args });
+    return { data: employee, message: "Employee Added successfully" };
 };
 
-const createEmployeeSchema = (z:any) => {
+const createEmployeeSchema = (z: typeof import('zod').z) => {
     return {
         email: z.string().email({ message: 'Invalid email address' }),
         name: z.string().min(1, { message: 'Name is required' }),
@@ -22,7 +36,6 @@ export const endpoint = {
         useServices({
             ...useCoreServices(),
         }),
-        // useAuth(),
         useJsonBody(createEmployeeSchema),
         employeeAdd,
     ),

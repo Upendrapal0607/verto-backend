@@ -1,62 +1,10 @@
-// import { omit } from 'radash';
-
-// type LumoErrorMetadata = Record<string, any> & { key: string; cause?: Error | string };
-
-// export class LumoError<TMetadata extends Record<string, any> = Record<string, any>> extends Error {
-//   metadata: Omit<TMetadata, 'key' | 'cause'>;
-//   key: string;
-//   status: number = 500;
-//   cause?: Error | string;
-
-//   constructor(message: string, metadata: TMetadata & { key: string; cause?: Error | string }) {
-//     super(message);
-//     this.key = metadata.key;
-//     this.cause = metadata.cause;
-//     this.metadata = omit(metadata, ['key', 'cause']);
-//     Object.setPrototypeOf(this, new.target.prototype);
-//   }
-// }
-
-
-// export class BadRequestError extends LumoError {
-//   status = 400;
-// }
-
-// export class NotAuthenticatedError extends LumoError {
-//   status = 401;
-// }
-
-// export class NotAuthorizedError extends LumoError {
-//   status = 403;
-// }
-
-// export class NotFoundError extends LumoError {
-//   status = 404;
-// }
-
-// export class RateLimitError extends LumoError {
-//   status = 429;
-// }
-
-// export class InternalServerError extends LumoError {
-//   status = 500;
-// }
-
-// export class ConflictError extends LumoError {
-//   status = 409;
-// }
-
-
-
 import { omit } from 'radash';
 
-type LumoErrorMetadata = Record<string, any> & { key: string; cause?: Error | string };
-
-export class LumoError<TMetadata extends Record<string, any> = Record<string, any>> extends Error {
+export class LumoError<TMetadata extends Record<string, unknown> = Record<string, unknown>> extends Error {
   metadata: Omit<TMetadata, 'key' | 'cause'>;
   key: string;
   status: number = 500;
-  cause?: Error | string;
+  override cause?: Error | string | undefined;
 
   constructor(message: string, metadata: TMetadata & { key: string; cause?: Error | string }) {
     super(message);
@@ -65,8 +13,6 @@ export class LumoError<TMetadata extends Record<string, any> = Record<string, an
     this.cause = metadata.cause;
     this.metadata = omit(metadata, ['key', 'cause']);
     Object.setPrototypeOf(this, new.target.prototype);
-
-    // 👇 Automatically log the error when it’s created
     this.logError();
   }
 
@@ -82,7 +28,7 @@ export class LumoError<TMetadata extends Record<string, any> = Record<string, an
         : this.cause,
       stack: this.stack,
     };
-    console.error("🔥 LumoError:", JSON.stringify(details, null, 2));
+    console.error("LumoError:", JSON.stringify(details, null, 2));
   }
 
   toJSON() {
@@ -99,15 +45,15 @@ export class LumoError<TMetadata extends Record<string, any> = Record<string, an
     };
   }
 
-  toString() {
+  override toString() {
     return JSON.stringify(this.toJSON(), null, 2);
   }
 }
 
-export class BadRequestError extends LumoError { status = 400; }
-export class NotAuthenticatedError extends LumoError { status = 401; }
-export class NotAuthorizedError extends LumoError { status = 403; }
-export class NotFoundError extends LumoError { status = 404; }
-export class RateLimitError extends LumoError { status = 429; }
-export class InternalServerError extends LumoError { status = 500; }
-export class ConflictError extends LumoError { status = 409; }
+export class BadRequestError extends LumoError { override status = 400; }
+export class NotAuthenticatedError extends LumoError { override status = 401; }
+export class NotAuthorizedError extends LumoError { override status = 403; }
+export class NotFoundError extends LumoError { override status = 404; }
+export class RateLimitError extends LumoError { override status = 429; }
+export class InternalServerError extends LumoError { override status = 500; }
+export class ConflictError extends LumoError { override status = 409; }

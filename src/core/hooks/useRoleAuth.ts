@@ -1,7 +1,29 @@
 import _ from 'lodash';
 import { NotAuthorizedError } from '../../lib/core/error';
+import { Props, NextFunc } from '../../lib/core/types';
 
-const withRoleAuth = async (func:any, props:any, opts:any) => {
+interface User {
+    type: string;
+    [key: string]: unknown;
+}
+
+interface RoleAuthOptions {
+    allowed?: string[];
+    roles?: Array<(user: User) => boolean>;
+}
+
+interface RoleAuthProps extends Props {
+    args: {
+        user: User;
+        [key: string]: unknown;
+    };
+}
+
+const withRoleAuth = async <TProps extends RoleAuthProps, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    props: TProps, 
+    opts: RoleAuthOptions
+): Promise<TResult> => {
     const { user } = props.args;
     const allowed = opts.allowed || [];
 
@@ -29,9 +51,10 @@ const withRoleAuth = async (func:any, props:any, opts:any) => {
         args: {
             ...props.args,
         },
-    });
+    } as TProps);
 };
 
-export const useRoleAuth = (opts:any) => (func:any) => (props:any) => {
-    return withRoleAuth(func, props, opts);
-};
+export const useRoleAuth = <TProps extends RoleAuthProps = RoleAuthProps>(opts: RoleAuthOptions) => 
+    <TResult>(func: NextFunc<TProps, TResult>) => (props: TProps) => {
+        return withRoleAuth(func, props, opts);
+    };

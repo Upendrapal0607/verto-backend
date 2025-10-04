@@ -6,13 +6,7 @@ type TemplateSegment = {
 };
 
 export const ParamParser = (
-    /**
-     * The developer provided path with named
-     * parameter templates.
-     *
-     * @example
-     * /libraries/{library}/books/{book}/checkout
-     */
+ 
     template: string,
 ) => {
     const templateParts: TemplateSegment[] = template.split('/').map((raw, index) => {
@@ -26,13 +20,7 @@ export const ParamParser = (
     });
     return {
         parse: (
-            /**
-             * The actual runtime url path that is being
-             * called.
-             *
-             * @example
-             * /library/ny-public-library/books/art-of-war/checkout
-             */
+    
             path: string,
         ): Record<string, string> => {
             const params: Record<string, string> = {};

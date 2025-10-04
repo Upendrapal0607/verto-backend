@@ -1,10 +1,15 @@
 import { isArray, isFunction, tryit } from 'radash';
-import { z as zod, ZodError } from 'zod';
+import { z as zod, ZodError, ZodSchema, ZodTypeAny } from 'zod';
 import { BadRequestError } from '../../core/index';
+import { Props, NextFunc } from '../../core/types';
 
-const isZodError = (e:any) => e?.issues && isArray(e.issues);
+const isZodError = (e: unknown): e is ZodError => e instanceof ZodError && e?.issues && isArray(e.issues);
 
-export const withQueryString = async (func:any, model:any, props:any) => {
+export const withQueryString = async <TProps extends Props, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    model: ZodSchema, 
+    props: TProps
+): Promise<TResult> => {
     const [zerr, args] = await tryit(model.parseAsync)(props.request.query);
     if (zerr) {
         if (!isZodError(zerr)) {
@@ -26,12 +31,15 @@ export const withQueryString = async (func:any, model:any, props:any) => {
         ...props,
         args: {
             ...props.args,
-            ...(args as any),
+            ...(args as Record<string, unknown>),
         },
-    });
+    } as TProps);
 };
 
-export const useQueryString = (shapeMaker:any) => (func:any) => {
-    const model = isFunction(shapeMaker) ? zod.object(shapeMaker(zod)) : shapeMaker;
-    return (props:any) => withQueryString(func, model, props);
-};
+type ShapeMaker = (z: typeof zod) => Record<string, ZodTypeAny>;
+
+export const useQueryString = <TProps extends Props = Props>(shapeMaker: ShapeMaker | ZodSchema) => 
+    <TResult>(func: NextFunc<TProps, TResult>) => {
+        const model = isFunction(shapeMaker) ? zod.object(shapeMaker(zod)) : shapeMaker;
+        return (props: TProps) => withQueryString(func, model, props);
+    };

@@ -1,12 +1,16 @@
 import { isArray, isFunction, tryit } from 'radash';
-import zod, { ZodArray, ZodError, ZodObject, ZodRawShape } from 'zod';
+import zod, { ZodArray, ZodError, ZodObject, ZodRawShape, ZodSchema } from 'zod';
 import { NextFunc, Props } from '../../core/types';
 import { BadRequestError } from '../../core';
 
-const isZodError = (e: any): e is ZodError => e?.issues && isArray(e.issues);
+const isZodError = (e: unknown): e is ZodError => e instanceof ZodError && e?.issues && isArray(e.issues);
 
-export const withHeaders = async (func: NextFunc, model:  any | ZodArray<any>, props: Props) => {
-    const [zerr, args] :any = await tryit(model.parseAsync)(props.request.headers);
+export const withHeaders = async <TProps extends Props, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    model: ZodSchema, 
+    props: TProps
+): Promise<TResult> => {
+    const [zerr, args] = await tryit(model.parseAsync)(props.request.headers);
     if (zerr) {
         if (!isZodError(zerr)) {
             throw new BadRequestError('Header validation failed: ' + zerr.message, {
@@ -27,9 +31,9 @@ export const withHeaders = async (func: NextFunc, model:  any | ZodArray<any>, p
         ...props,
         args: {
             ...props.args,
-            ...args,
+            ...(args as Record<string, unknown>),
         },
-    });
+    } as TProps);
 };
 
 export const useHeaders: <TRawShape extends ZodRawShape>(

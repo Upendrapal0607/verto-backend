@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Types, Connection } from 'mongoose';
 import {
     count as countMongo,
     deleteOne as deleteOneMongo,
@@ -9,7 +9,19 @@ import {
     updateOne as updateOneMongo,
 } from './methods';
 
-const createMongoClient = (conn : any) => {
+interface DatabaseClient {
+    findById: (model: string, id: string) => Promise<[Error | null, unknown]>;
+    findMany: (model: string, query?: Record<string, unknown>, opts?: Record<string, unknown>) => Promise<[Error | null, unknown[]]>;
+    count: (model: string, query?: Record<string, unknown>) => Promise<[Error | null, number]>;
+    isConnected: () => boolean;
+    insertOne: (model: string, record: Record<string, unknown>) => Promise<[Error | null, unknown]>;
+    updateOne: (model: string, query: Record<string, unknown>, updateData: Record<string, unknown>) => Promise<[Error | null, unknown]>;
+    deleteOne: (model: string, query: Record<string, unknown>) => Promise<[Error | null, unknown]>;
+    findOne: (model: string, query: Record<string, unknown>) => Promise<[Error | null, unknown]>;
+    generateNewId: () => Types.ObjectId;
+}
+
+const createMongoClient = (conn: Connection): DatabaseClient => {
     return {
         findById: findByIdMongo(conn),
         findMany: findManyMongo(conn),

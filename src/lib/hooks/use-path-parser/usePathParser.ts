@@ -1,6 +1,15 @@
 import { ParamParser } from './param-parser';
+import { Props, NextFunc } from '../../core/types';
 
-export async function withPathParser(func:any, parser:any, props:any) {
+type PathParser = {
+    parse: (path: string) => Record<string, string>;
+};
+
+export async function withPathParser<TProps extends Props, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    parser: PathParser, 
+    props: TProps
+): Promise<TResult> {
     const params = parser.parse(props.request.path);
     return await func({
         ...props,
@@ -11,12 +20,12 @@ export async function withPathParser(func:any, parser:any, props:any) {
                 ...params,
             },
         },
-    });
+    } as TProps);
 }
 
-export const usePathParser = (template:any) => {
+export const usePathParser = <TProps extends Props = Props>(template: string) => {
     const parser = ParamParser(template);
-    return (func:any) => {
-        return (props:any) => withPathParser(func, parser, props);
+    return <TResult>(func: NextFunc<TProps, TResult>) => {
+        return (props: TProps) => withPathParser(func, parser, props);
     };
 };

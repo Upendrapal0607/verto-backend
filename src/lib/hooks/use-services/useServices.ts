@@ -1,9 +1,21 @@
 import { isFunction, objectify, parallel } from 'radash';
+import { Props, NextFunc } from '../../core/types';
 
-async function withServices(func:any, serviceFunctionsByKey:any, props:any) {
-    // Get array of service functions (object - key is service name, value returned from service function)
-    // If service func is a function, call it with props
-    const serviceList = await parallel(10, Object.keys(serviceFunctionsByKey), async (key) => {
+type ServiceFunction<TProps extends Props = Props> = (props: TProps) => unknown | Promise<unknown>;
+type ServiceValue = unknown | ServiceFunction;
+type ServiceFunctionsByKey = Record<string, ServiceValue>;
+
+interface ServiceResult {
+    key: string;
+    value: unknown;
+}
+
+async function withServices<TProps extends Props, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    serviceFunctionsByKey: ServiceFunctionsByKey, 
+    props: TProps
+): Promise<TResult> {
+    const serviceList = await parallel(10, Object.keys(serviceFunctionsByKey), async (key: string): Promise<ServiceResult> => {
         const serviceOrFunction = serviceFunctionsByKey[key];
         return {
             key,
@@ -14,8 +26,8 @@ async function withServices(func:any, serviceFunctionsByKey:any, props:any) {
     // Create object of services (key is service name, value returned from service function)
     const services = objectify(
         serviceList,
-        (s) => s.key,
-        (s) => s.value,
+        (s: ServiceResult) => s.key,
+        (s: ServiceResult) => s.value,
     );
 
     return await func({
@@ -24,8 +36,10 @@ async function withServices(func:any, serviceFunctionsByKey:any, props:any) {
             ...props.services,
             ...services,
         },
-    });
+    } as TProps);
 }
 
-export const useServices = (serviceFunctionsByKey:any) => (func:any) => (props:any) =>
+export const useServices = <any>(
+    serviceFunctionsByKey: ServiceFunctionsByKey
+) => <TResult>(func: NextFunc<TProps, TResult>) => (props: TProps) =>
     withServices(func, serviceFunctionsByKey, props);

@@ -1,5 +1,4 @@
 import Koa from 'koa';
-// import cookie from "cookie";
 import { isPromise, try as tryit } from 'radash';
 import { LumoError, props, response } from '../../core/index';
 
@@ -40,7 +39,7 @@ export interface PropsFromKoa {
     request: {
         url: string;
         path: string;
-        files: any;
+        files: Record<string, unknown> | undefined;
         method: string;
         ip: string;
         startedAt: number;
@@ -48,9 +47,9 @@ export interface PropsFromKoa {
         httpVersion: string;
         headers: Record<string, string | string[]>;
         // cookies: Record<string, string>;
-        body: Record<string, any> | string | null;
-        query: Record<string, any> | string | null;
-        params: Record<string, any> | string | null;
+        body: Record<string, unknown> | string | null;
+        query: Record<string, unknown> | string | null;
+        params: Record<string, unknown> | string | null;
     };
     framework: {
         ctx: Koa.Context;
@@ -63,19 +62,19 @@ export interface PropsFromKoa {
 const makeRequest = (ctx: Koa.Context) => ({
     url: ctx.originalUrl,
     path: ctx.path,
-    files: (ctx.request as any).files,
+    files: (ctx.request as { files?: Record<string, unknown> }).files,
     method: ctx.method,
     ip: ctx.ip,
     startedAt: Date.now(),
     protocol: ctx.request.protocol,
     httpVersion: ctx.req.httpVersion,
     headers: ctx.headers,
-    body: (ctx.request as any).body,
+    body: (ctx.request as { body?: Record<string, unknown> | string }).body,
     query: ctx.query,
     params: ctx.params || {},
 });
 
-type KoaFunc = (args: PropsFromKoa) => Promise<any>;
+type KoaFunc = (args: PropsFromKoa) => Promise<unknown>;
 
 export const useKoa =
     (options: UseKoaOptions = {}) =>

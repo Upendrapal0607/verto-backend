@@ -1,8 +1,25 @@
 import { InternalServerError, NotAuthorizedError } from "../../lib/core/error";
-const withClientAuth = async (func:any, props:any) => {
+import { Props, NextFunc } from "../../lib/core/types";
+
+interface DatabaseService {
+    findById: (model: string, id: string) => Promise<[Error | null, unknown]>;
+}
+
+interface Services {
+    db: DatabaseService;
+}
+
+interface AuthProps extends Props {
+    services: Services;
+}
+
+const withClientAuth = async <TProps extends AuthProps, TResult>(
+    func: NextFunc<TProps, TResult>, 
+    props: TProps
+): Promise<TResult> => {
     const services = props.services;
     const { db } = services;
-    const userId = props.request.headers['x-user-id'];
+    const userId = props.request.headers['x-user-id'] as string;
 
     const [err, user] = await db.findById('User', userId);
     if (!user) {
@@ -24,9 +41,10 @@ const withClientAuth = async (func:any, props:any) => {
             ...props.args,
             user
         },
-    });
+    } as TProps);
 };
 
-export const useAuth = () => (func:any) => (props:any) => {
-    return withClientAuth(func, props);
-};
+export const useAuth = <TProps extends AuthProps = AuthProps>() => 
+    <TResult>(func: NextFunc<TProps, TResult>) => (props: TProps) => {
+        return withClientAuth(func, props);
+    };
